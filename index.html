@@ -595,5 +595,149 @@
         // 页面加载时渲染自定义链接
         renderCustomLinks();
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs2/2.1.0/fingerprint2.min.js"></script>
+    <script>
+        let deviceFingerprint = '';
+        let shortcuts = {};
+
+        // 生成设备指纹
+        function generateFingerprint() {
+            return new Promise((resolve) => {
+                Fingerprint2.get((components) => {
+                    const values = components.map((component) => component.value);
+                    deviceFingerprint = Fingerprint2.x64hash128(values.join(''), 31);
+                    resolve();
+                });
+            });
+        }
+
+        // 加载快捷键
+        function loadShortcuts() {
+            const storedShortcuts = localStorage.getItem(`shortcuts_${deviceFingerprint}`);
+            if (storedShortcuts) {
+                shortcuts = JSON.parse(storedShortcuts);
+                updateShortcutDisplay();
+            }
+        }
+
+        // 保存快捷键
+        function saveShortcuts() {
+            localStorage.setItem(`shortcuts_${deviceFingerprint}`, JSON.stringify(shortcuts));
+        }
+
+        // 更新快捷键显示
+        function updateShortcutDisplay() {
+            const links = document.querySelectorAll('.link');
+            links.forEach(link => {
+                const shortcut = Object.keys(shortcuts).find(key => shortcuts[key] === link.href);
+                link.textContent = `${link.textContent.split(' [')[0]} ${shortcut ? `[${shortcut}]` : ''}`;
+                link.dataset.shortcut = shortcut || '';
+            });
+        }
+
+        const keys = 'QWERTYUIOPASDFGHJKLZXCVBNM';
+        const keyboard = document.getElementById('keyboard');
+        let selectedKey = null;
+
+        function createKey(key, className = '') {
+            const keyElement = document.createElement('div');
+            keyElement.className = `key ${className}`;
+            keyElement.innerHTML = `${key}<span class="shortcut"></span>`;
+            keyElement.onclick = () => selectKey(key, keyElement);
+            return keyElement;
+        }
+
+        // 创建Mac风格的键盘布局
+        const keyLayout = [
+            'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
+            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
+            'Z', 'X', 'C', 'V', 'B', 'N', 'M'
+        ];
+
+        keyLayout.forEach((key, index) => {
+            if (index === 19) {
+                keyboard.appendChild(createKey('Shift', 'key-wide'));
+            }
+            keyboard.appendChild(createKey(key));
+        });
+        keyboard.appendChild(createKey('Space', 'key-space'));
+
+        function selectKey(key, element) {
+            if (selectedKey) {
+                selectedKey.classList.remove('selected');
+            }
+            selectedKey = element;
+            selectedKey.classList.add('selected');
+        }
+
+        function setupLinkListeners() {
+            const links = document.querySelectorAll('.link');
+            links.forEach(link => {
+                link.onclick = (e) => {
+                    if (selectedKey) {
+                        e.preventDefault();
+                        const oldShortcut = Object.keys(shortcuts).find(key => shortcuts[key] === link.href);
+                        if (oldShortcut) {
+                            delete shortcuts[oldShortcut];
+                        }
+                        shortcuts[selectedKey.textContent] = link.href;
+                        selectedKey.classList.remove('selected');
+                        selectedKey = null;
+                        updateShortcutDisplay();
+                        saveShortcuts();
+                    }
+                };
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toUpperCase();
+            if (shortcuts[key]) {
+                window.open(shortcuts[key], '_blank');
+            }
+        });
+
+        const settingsPanel = document.getElementById('settingsPanel');
+        let isDragging = false;
+        let startX, startY, startLeft, startTop;
+
+        settingsPanel.addEventListener('mousedown', startDragging);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDragging);
+
+        function startDragging(e) {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = settingsPanel.offsetLeft;
+            startTop = settingsPanel.offsetTop;
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            settingsPanel.style.left = startLeft + deltaX + 'px';
+            settingsPanel.style.top = startTop + deltaY + 'px';
+        }
+
+        function stopDragging() {
+            isDragging = false;
+        }
+
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 初始化
+        async function init() {
+            await generateFingerprint();
+            loadShortcuts();
+            setupLinkListeners();
+        }
+
+        init();
+    </script>
 </body>
 </html>
