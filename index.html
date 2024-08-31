@@ -552,119 +552,6 @@
 
         init();
     
-        const keys = 'QWERTYUIOPASDFGHJKLZXCVBNM';
-        const keyboard = document.getElementById('keyboard');
-        const links = document.querySelectorAll('.link');
-        let selectedKey = null;
-        let shortcuts = JSON.parse(localStorage.getItem('shortcuts')) || {};
-
-        function createKey(key, className = '') {
-            const keyElement = document.createElement('div');
-            keyElement.className = `key ${className}`;
-            keyElement.innerHTML = `${key}<span class="shortcut"></span>`;
-            keyElement.onclick = () => selectKey(key, keyElement);
-            return keyElement;
-        }
-
-        // 创建Mac风格的键盘布局
-        const keyLayout = [
-            'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
-            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
-            'Z', 'X', 'C', 'V', 'B', 'N', 'M'
-        ];
-
-        keyLayout.forEach((key, index) => {
-            if (index === 19) {
-                keyboard.appendChild(createKey('Shift', 'key-wide'));
-            }
-            keyboard.appendChild(createKey(key));
-        });
-        keyboard.appendChild(createKey('Space', 'key-space'));
-
-        function selectKey(key, element) {
-            if (selectedKey) {
-                selectedKey.classList.remove('selected');
-            }
-            selectedKey = element;
-            selectedKey.classList.add('selected');
-        }
-
-        links.forEach(link => {
-            link.onclick = (e) => {
-                if (selectedKey) {
-                    e.preventDefault();
-                    const oldShortcut = link.dataset.shortcut;
-                    if (oldShortcut) {
-                        document.querySelector(`.key:contains('${oldShortcut}') .shortcut`).textContent = '';
-                        delete shortcuts[oldShortcut];
-                    }
-                    link.dataset.shortcut = selectedKey.textContent;
-                    shortcuts[selectedKey.textContent] = link.href;
-                    selectedKey.querySelector('.shortcut').textContent = link.textContent.split(' [')[0];
-                    selectedKey.classList.remove('selected');
-                    selectedKey = null;
-                    updateShortcutDisplay();
-                    saveShortcuts();
-                }
-            };
-        });
-
-        function updateShortcutDisplay() {
-            links.forEach(link => {
-                const shortcut = link.dataset.shortcut;
-                link.textContent = `${link.textContent.split(' [')[0]} ${shortcut ? `[${shortcut}]` : ''}`;
-            });
-        }
-
-        function saveShortcuts() {
-            localStorage.setItem('shortcuts', JSON.stringify(shortcuts));
-        }
-
-        function loadShortcuts() {
-            Object.entries(shortcuts).forEach(([key, url]) => {
-                const link = document.querySelector(`.link[href="${url}"]`);
-                if (link) {
-                    link.dataset.shortcut = key;
-                    document.querySelector(`.key:contains('${key}') .shortcut`).textContent = link.textContent.split(' [')[0];
-                }
-            });
-            updateShortcutDisplay();
-        }
-
-        document.addEventListener('keydown', (e) => {
-            const key = e.key.toUpperCase();
-            if (shortcuts[key]) {
-                window.open(shortcuts[key], '_blank');
-            }
-        });
-
-        const settingsPanel = document.getElementById('settingsPanel');
-        let isDragging = false;
-        let startX, startY, startLeft, startTop;
-
-        settingsPanel.addEventListener('mousedown', startDragging);
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDragging);
-
-        function startDragging(e) {
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            startLeft = settingsPanel.offsetLeft;
-            startTop = settingsPanel.offsetTop;
-        }
-
-        function drag(e) {
-            if (!isDragging) return;
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            settingsPanel.style.left = startLeft + deltaX + 'px';
-            settingsPanel.style.top = startTop + deltaY + 'px';
-        }
-
-        function stopDragging() {
-            isDragging = false;
-        }
 
     // 修改 toggleSettings 函数
         function toggleSettings() {
@@ -680,7 +567,6 @@
             }
         }
 
-        // 其他 JavaScript 函数保持不变
         // 新增：Google 搜索功能
         function googleSearch() {
             const searchTerm = document.querySelector('.search-input').value;
