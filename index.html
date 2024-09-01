@@ -408,7 +408,7 @@
         </div>
     </footer>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs2/2.1.0/fingerprint2.min.js"></script>
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs2/2.1.0/fingerprint2.min.js"></script>
     <script>
         let deviceFingerprint = '';
         let shortcuts = {};
@@ -575,21 +575,10 @@
             }
         }
 
-        // 加载自定义链接
-        function loadCustomLinks() {
-            const storedLinks = localStorage.getItem('customLinks');
-            if (storedLinks) {
-                customLinks = JSON.parse(storedLinks);
-                renderCustomLinks();
-            }
-        }
+        // 新增：自定义链接功能
+        let customLinks = JSON.parse(localStorage.getItem('customLinks')) || [];
 
-// 保存自定义链接
-        function saveCustomLinks() {
-            localStorage.setItem('customLinks', JSON.stringify(customLinks));
-        }
-
-// 渲染自定义链接
+        f// 修改自定义链接渲染函数
         function renderCustomLinks() {
             const customLinksContainer = document.getElementById('customLinks');
             customLinksContainer.innerHTML = '';
@@ -599,7 +588,7 @@
                 linkElement.className = 'link';
                 linkElement.textContent = link.name;
                 linkElement.target = '_blank';
-
+                
                 const deleteIcon = document.createElement('span');
                 deleteIcon.className = 'delete-icon';
                 deleteIcon.innerHTML = '&times;';
@@ -608,40 +597,32 @@
                     e.stopPropagation();
                     deleteCustomLink(index);
                 };
-
+                
                 linkElement.appendChild(deleteIcon);
                 customLinksContainer.appendChild(linkElement);
             });
-            setupLinkListeners();
-            updateShortcutDisplay();
         }
 
-// 添加自定义链接
         function addCustomLink() {
             const name = document.getElementById('linkName').value;
             const url = document.getElementById('linkUrl').value;
             if (name && url) {
                 customLinks.push({ name, url });
-                saveCustomLinks();
+                localStorage.setItem('customLinks', JSON.stringify(customLinks));
                 renderCustomLinks();
                 document.getElementById('linkName').value = '';
                 document.getElementById('linkUrl').value = '';
             }
         }
 
-// 删除自定义链接
         function deleteCustomLink(index) {
             customLinks.splice(index, 1);
-            saveCustomLinks();
+            localStorage.setItem('customLinks', JSON.stringify(customLinks));
             renderCustomLinks();
         }
 
-// 初始化函数
-        async function init() {
-            await generateFingerprint();
-            loadShortcuts();
-            loadCustomLinks();
-            setupLinkListeners();
+        // 页面加载时渲染自定义链接
+        renderCustomLinks();
     </script>
 </body>
 </html>
