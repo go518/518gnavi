@@ -566,343 +566,343 @@
         </div>
     </footer>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs2/2.1.0/fingerprint2.min.js"></script>
-    <script>
-        let deviceFingerprint = '';
-        let shortcuts = {};
-        let customLinks = [];
-        let selectedKey = null;
-        let previewTimer = null;
-        let isInputFocused = false;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs2/2.1.0/fingerprint2.min.js"></script>
+<script>
+    let deviceFingerprint = '';
+    let shortcuts = {};
+    let customLinks = [];
+    let selectedKey = null;
+    let previewTimer = null;
+    let isInputFocused = false;
 
     // 生成设备指纹
-        function generateFingerprint() {
-            return new Promise((resolve) => {
-                Fingerprint2.get((components) => {
-                    const values = components.map((component) => component.value);
-                    deviceFingerprint = Fingerprint2.x64hash128(values.join(''), 31);
-                    resolve();
-                });
+    function generateFingerprint() {
+        return new Promise((resolve) => {
+            Fingerprint2.get((components) => {
+                const values = components.map((component) => component.value);
+                deviceFingerprint = Fingerprint2.x64hash128(values.join(''), 31);
+                resolve();
             });
-        }
+        });
+    }
 
     // 加载快捷键
-        function loadShortcuts() {
-            const storedShortcuts = localStorage.getItem(`shortcuts_${deviceFingerprint}`);
-            if (storedShortcuts) {
-                shortcuts = JSON.parse(storedShortcuts);
-                updateShortcutDisplay();
-            }
+    function loadShortcuts() {
+        const storedShortcuts = localStorage.getItem(`shortcuts_${deviceFingerprint}`);
+        if (storedShortcuts) {
+            shortcuts = JSON.parse(storedShortcuts);
+            updateShortcutDisplay();
         }
+    }
 
     // 保存快捷键
-        function saveShortcuts() {
-            localStorage.setItem(`shortcuts_${deviceFingerprint}`, JSON.stringify(shortcuts));
-        }
+    function saveShortcuts() {
+        localStorage.setItem(`shortcuts_${deviceFingerprint}`, JSON.stringify(shortcuts));
+    }
 
     // 更新快捷键显示
-        function updateShortcutDisplay() {
-            const links = document.querySelectorAll('.link');
-            links.forEach(link => {
-                const shortcut = Object.keys(shortcuts).find(key => shortcuts[key] === link.href);
-                link.textContent = `${link.textContent.split(' [')[0]} ${shortcut ? `[${shortcut}]` : ''}`;
-                link.dataset.shortcut = shortcut || '';
-            });
-            updateKeyboardShortcuts();
-        }
+    function updateShortcutDisplay() {
+        const links = document.querySelectorAll('.link');
+        links.forEach(link => {
+            const shortcut = Object.keys(shortcuts).find(key => shortcuts[key] === link.href);
+            link.textContent = `${link.textContent.split(' [')[0]} ${shortcut ? `[${shortcut}]` : ''}`;
+            link.dataset.shortcut = shortcut || '';
+        });
+        updateKeyboardShortcuts();
+    }
 
     // 创建键盘按键
-        function createKey(key, className = '') {
-            const keyElement = document.createElement('div');
-            keyElement.className = `key ${className}`;
-            keyElement.innerHTML = `${key}<span class="shortcut"></span><span class="tooltip"></span>`;
-            keyElement.onclick = () => selectKey(key, keyElement);
-            keyElement.onmousedown = (e) => startPreview(e, key);
-            keyElement.onmouseup = stopPreview;
-            keyElement.onmouseleave = stopPreview;
-            return keyElement;
-        }
+    function createKey(key, className = '') {
+        const keyElement = document.createElement('div');
+        keyElement.className = `key ${className}`;
+        keyElement.innerHTML = `${key}<span class="shortcut"></span><span class="tooltip"></span>`;
+        keyElement.onclick = () => selectKey(key, keyElement);
+        keyElement.onmousedown = (e) => startPreview(e, key);
+        keyElement.onmouseup = stopPreview;
+        keyElement.onmouseleave = stopPreview;
+        return keyElement;
+    }
 
     // 创建键盘布局
-        function createKeyboard() {
-            const keyboard = document.getElementById('keyboard');
-            const keyLayout = [
-                'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
-                'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
-                'Z', 'X', 'C', 'V', 'B', 'N', 'M'
-                ];
+    function createKeyboard() {
+        const keyboard = document.getElementById('keyboard');
+        const keyLayout = [
+            'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
+            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
+            'Z', 'X', 'C', 'V', 'B', 'N', 'M'
+        ];
 
-            keyLayout.forEach((key, index) => {
-                if (index === 19) {
-                    keyboard.appendChild(createKey('Shift', 'key-wide'));
-                }
-                keyboard.appendChild(createKey(key));
-            });
-            keyboard.appendChild(createKey('Space', 'key-space'));
-        }
+        keyLayout.forEach((key, index) => {
+            if (index === 19) {
+                keyboard.appendChild(createKey('Shift', 'key-wide'));
+            }
+            keyboard.appendChild(createKey(key));
+        });
+        keyboard.appendChild(createKey('Space', 'key-space'));
+    }
 
     // 选择键盘按键
-        function selectKey(key, element) {
-            if (selectedKey) {
-                selectedKey.classList.remove('selected');
-            }
-            selectedKey = element;
-            selectedKey.classList.add('selected');
+    function selectKey(key, element) {
+        if (selectedKey) {
+            selectedKey.classList.remove('selected');
         }
+        selectedKey = element;
+        selectedKey.classList.add('selected');
+    }
 
     // 设置链接监听器
-        function setupLinkListeners() {
-            const links = document.querySelectorAll('.link');
-            links.forEach(link => {
-                link.onclick = (e) => {
-                    if (selectedKey) {
-                        e.preventDefault();
-                        const newKey = selectedKey.textContent.trim().toUpperCase();
-                        const existingShortcut = shortcuts[newKey];
-                        if (existingShortcut && existingShortcut !== link.href) {
-                            showConflictModal(newKey, existingShortcut, link.href);
-                        } else {
-                            setShortcut(newKey, link.href);
-                        }
+    function setupLinkListeners() {
+        const links = document.querySelectorAll('.link');
+        links.forEach(link => {
+            link.onclick = (e) => {
+                if (selectedKey) {
+                    e.preventDefault();
+                    const newKey = selectedKey.textContent.trim().toUpperCase();
+                    const existingShortcut = shortcuts[newKey];
+                    if (existingShortcut && existingShortcut !== link.href) {
+                        showConflictModal(newKey, existingShortcut, link.href);
+                    } else {
+                        setShortcut(newKey, link.href);
                     }
-                };
-            });
-        }
+                }
+            };
+        });
+    }
 
     // 显示冲突对话框
-        function showConflictModal(key, oldUrl, newUrl) {
-            const modal = document.getElementById('conflictModal');
-            const modalContent = document.getElementById('conflictModalContent');
-            const oldLink = document.querySelector(`a[href="${oldUrl}"]`);
-            const newLink = document.querySelector(`a[href="${newUrl}"]`);
-            
-            modalContent.innerHTML = `
+    function showConflictModal(key, oldUrl, newUrl) {
+        const modal = document.getElementById('conflictModal');
+        const modalContent = document.getElementById('conflictModalContent');
+        const oldLink = document.querySelector(`a[href="${oldUrl}"]`);
+        const newLink = document.querySelector(`a[href="${newUrl}"]`);
+        
+        modalContent.innerHTML = `
             <p>快捷键 "${key}" 已经被分配给了 "${oldLink.textContent.split(' [')[0]}"。</p>
             <p>您是否要将其重新分配给 "${newLink.textContent.split(' [')[0]}"？</p>
             <div class="modal-buttons">
-            <button onclick="resolveConflict('${key}', '${newUrl}', true)">是</button>
-            <button onclick="resolveConflict('${key}', '${newUrl}', false)">否</button>
+                <button onclick="resolveConflict('${key}', '${newUrl}', true)">是</button>
+                <button onclick="resolveConflict('${key}', '${newUrl}', false)">否</button>
             </div>
-            `;
-            
-            modal.style.display = 'block';
-        }
+        `;
+        
+        modal.style.display = 'block';
+    }
 
     // 解决冲突
-        function resolveConflict(key, newUrl, overwrite) {
-            if (overwrite) {
-                setShortcut(key, newUrl);
-            }
-            document.getElementById('conflictModal').style.display = 'none';
-            selectedKey.classList.remove('selected');
-            selectedKey = null;
+    function resolveConflict(key, newUrl, overwrite) {
+        if (overwrite) {
+            setShortcut(key, newUrl);
         }
+        document.getElementById('conflictModal').style.display = 'none';
+        selectedKey.classList.remove('selected');
+        selectedKey = null;
+    }
 
     // 设置快捷键
-        function setShortcut(key, url) {
-            const oldShortcut = Object.keys(shortcuts).find(k => shortcuts[k] === url);
-            if (oldShortcut) {
-                delete shortcuts[oldShortcut];
-            }
-            shortcuts[key] = url;
-            updateShortcutDisplay();
-            saveShortcuts();
+    function setShortcut(key, url) {
+        const oldShortcut = Object.keys(shortcuts).find(k => shortcuts[k] === url);
+        if (oldShortcut) {
+            delete shortcuts[oldShortcut];
         }
+        shortcuts[key] = url;
+        updateShortcutDisplay();
+        saveShortcuts();
+    }
 
     // 更新键盘快捷键显示
-        function updateKeyboardShortcuts() {
-            const keyElements = document.querySelectorAll('.key');
-            keyElements.forEach(keyElement => {
-                const key = keyElement.textContent.trim().toUpperCase();
-                const shortcutSpan = keyElement.querySelector('.shortcut');
-                const tooltipSpan = keyElement.querySelector('.tooltip');
-                if (shortcuts[key]) {
-                    const link = document.querySelector(`a[href="${shortcuts[key]}"]`);
-                    if (link) {
-                        const websiteName = link.textContent.split(' [')[0];
-                        shortcutSpan.textContent = websiteName.length > 8 ? websiteName.slice(0, 8) + '...' : websiteName;
-                        tooltipSpan.textContent = `${websiteName}\n${shortcuts[key]}`;
-                        keyElement.classList.add('has-shortcut');
-                    }
-                } else {
-                    shortcutSpan.textContent = '';
-                    tooltipSpan.textContent = '';
-                    keyElement.classList.remove('has-shortcut');
-                }
-            });
-        }
-
-    // 开始预览
-        function startPreview(event, key) {
+    function updateKeyboardShortcuts() {
+        const keyElements = document.querySelectorAll('.key');
+        keyElements.forEach(keyElement => {
+            const key = keyElement.textContent.trim().toUpperCase();
+            const shortcutSpan = keyElement.querySelector('.shortcut');
+            const tooltipSpan = keyElement.querySelector('.tooltip');
             if (shortcuts[key]) {
-                previewTimer = setTimeout(() => {
-                    const preview = document.createElement('div');
-                    preview.className = 'preview';
-                    preview.style.left = `${event.clientX + 10}px`;
-                    preview.style.top = `${event.clientY + 10}px`;
-                    preview.innerHTML = `<iframe src="${shortcuts[key]}" width="300" height="200"></iframe>`;
-                    document.body.appendChild(preview);
-                }, 500);
-            }
-        }
-
-    // 停止预览
-        function stopPreview() {
-            clearTimeout(previewTimer);
-            const preview = document.querySelector('.preview');
-            if (preview) {
-                preview.remove();
-            }
-        }
-
-    // 切换设置面板
-        function toggleSettings() {
-            const panel = document.getElementById('settingsPanel');
-            if (panel.style.display === 'none' || panel.style.display === '') {
-                panel.style.display = 'block';
-                panel.style.left = '50%';
-                panel.style.top = '50%';
-                panel.style.transform = 'translate(-50%, -50%)';
-            } else {
-                panel.style.display = 'none';
-            }
-        }
-
-    // Google 搜索功能
-        function googleSearch() {
-            const searchTerm = document.querySelector('.search-input').value;
-            if (searchTerm) {
-                window.open(`https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`, '_blank');
-            }
-        }
-
-    // 添加自定义链接
-        function addCustomLink() {
-            const name = document.getElementById('linkName').value;
-            const url = document.getElementById('linkUrl').value;
-            if (name && url) {
-                customLinks.push({ name, url });
-                localStorage.setItem(`customLinks_${deviceFingerprint}`, JSON.stringify(customLinks));
-                renderCustomLinks();
-                document.getElementById('linkName').value = '';
-                document.getElementById('linkUrl').value = '';
-            }
-        }
-
-    // 删除自定义链接
-        function deleteCustomLink(index) {
-            customLinks.splice(index, 1);
-            localStorage.setItem(`customLinks_${deviceFingerprint}`, JSON.stringify(customLinks));
-            renderCustomLinks();
-        }
-
-    // 渲染自定义链接
-        function renderCustomLinks() {
-            const customLinksContainer = document.getElementById('customLinks');
-            customLinksContainer.innerHTML = '';
-            customLinks.forEach((link, index) => {
-                const linkElement = document.createElement('a');
-                linkElement.href = link.url;
-                linkElement.className = 'link';
-                linkElement.textContent = link.name;
-                linkElement.target = '_blank';
-                
-                const deleteIcon = document.createElement('span');
-                deleteIcon.className = 'delete-icon';
-                deleteIcon.innerHTML = '&times;';
-                deleteIcon.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    deleteCustomLink(index);
-                };
-                
-                linkElement.appendChild(deleteIcon);
-                customLinksContainer.appendChild(linkElement);
-            });
-            setupLinkListeners();
-        }
-
-    // 加载自定义链接
-        function loadCustomLinks() {
-            const storedLinks = localStorage.getItem(`customLinks_${deviceFingerprint}`);
-            if (storedLinks) {
-                customLinks = JSON.parse(storedLinks);
-                renderCustomLinks();
-            }
-        }
-
-    // 初始化函数
-        async function init() {
-            await generateFingerprint();
-            loadShortcuts();
-            loadCustomLinks();
-            createKeyboard();
-            setupLinkListeners();
-            updateKeyboardShortcuts();
-            setupInputListeners();
-        }
-
-    // 设置拖动功能
-        const settingsPanel = document.getElementById('settingsPanel');
-        let isDragging = false;
-        let startX, startY, startLeft, startTop;
-
-        settingsPanel.addEventListener('mousedown', startDragging);
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDragging);
-
-        function startDragging(e) {
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            startLeft = settingsPanel.offsetLeft;
-            startTop = settingsPanel.offsetTop;
-        }
-
-        function drag(e) {
-            if (!isDragging) return;
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            settingsPanel.style.left = startLeft + deltaX + 'px';
-            settingsPanel.style.top = startTop + deltaY + 'px';
-        }
-
-        function stopDragging() {
-            isDragging = false;
-        }
-
-    // 设置输入框监听器
-        function setupInputListeners() {
-            const inputs = document.querySelectorAll('input[type="text"], input[type="url"]');
-            inputs.forEach(input => {
-                input.addEventListener('focus', () => {
-                    isInputFocused = true;
-                });
-                input.addEventListener('blur', () => {
-                    isInputFocused = false;
-                });
-            });
-        }
-
-    // 设置键盘快捷键
-        document.addEventListener('keydown', (e) => {
-            if (!isInputFocused) {
-                const key = e.key.toUpperCase();
-                if (shortcuts[key]) {
-                    window.open(shortcuts[key], '_blank');
+                const link = document.querySelector(`a[href="${shortcuts[key]}"]`);
+                if (link) {
+                    const websiteName = link.textContent.split(' [')[0];
+                    shortcutSpan.textContent = websiteName.length > 8 ? websiteName.slice(0, 8) + '...' : websiteName;
+                    tooltipSpan.textContent = `${websiteName}\n${shortcuts[key]}`;
+                    keyElement.classList.add('has-shortcut');
                 }
+            } else {
+                shortcutSpan.textContent = '';
+                tooltipSpan.textContent = '';
+                keyElement.classList.remove('has-shortcut');
             }
         });
+    }
+
+    // 开始预览
+    function startPreview(event, key) {
+        if (shortcuts[key]) {
+            previewTimer = setTimeout(() => {
+                const preview = document.createElement('div');
+                preview.className = 'preview';
+                preview.style.left = `${event.clientX + 10}px`;
+                preview.style.top = `${event.clientY + 10}px`;
+                preview.innerHTML = `<iframe src="${shortcuts[key]}" width="300" height="200"></iframe>`;
+                document.body.appendChild(preview);
+            }, 500);
+        }
+    }
+
+    // 停止预览
+    function stopPreview() {
+        clearTimeout(previewTimer);
+        const preview = document.querySelector('.preview');
+        if (preview) {
+            preview.remove();
+        }
+    }
+
+    // 切换设置面板
+    function toggleSettings() {
+        const panel = document.getElementById('settingsPanel');
+        if (panel.style.display === 'none' || panel.style.display === '') {
+            panel.style.display = 'block';
+            panel.style.left = '50%';
+            panel.style.top = '50%';
+            panel.style.transform = 'translate(-50%, -50%)';
+        } else {
+            panel.style.display = 'none';
+        }
+    }
+
+    // Google 搜索功能
+    function googleSearch() {
+        const searchTerm = document.querySelector('.search-input').value;
+        if (searchTerm) {
+            window.open(`https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`, '_blank');
+        }
+    }
+
+    // 添加自定义链接
+    function addCustomLink() {
+        const name = document.getElementById('linkName').value;
+        const url = document.getElementById('linkUrl').value;
+        if (name && url) {
+            customLinks.push({ name, url });
+            localStorage.setItem(`customLinks_${deviceFingerprint}`, JSON.stringify(customLinks));
+            renderCustomLinks();
+            document.getElementById('linkName').value = '';
+            document.getElementById('linkUrl').value = '';
+        }
+    }
+
+    // 删除自定义链接
+    function deleteCustomLink(index) {
+        customLinks.splice(index, 1);
+        localStorage.setItem(`customLinks_${deviceFingerprint}`, JSON.stringify(customLinks));
+        renderCustomLinks();
+    }
+
+    // 渲染自定义链接
+    function renderCustomLinks() {
+        const customLinksContainer = document.getElementById('customLinks');
+        customLinksContainer.innerHTML = '';
+        customLinks.forEach((link, index) => {
+            const linkElement = document.createElement('a');
+            linkElement.href = link.url;
+            linkElement.className = 'link';
+            linkElement.textContent = link.name;
+            linkElement.target = '_blank';
+            
+            const deleteIcon = document.createElement('span');
+            deleteIcon.className = 'delete-icon';
+            deleteIcon.innerHTML = '&times;';
+            deleteIcon.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                deleteCustomLink(index);
+            };
+            
+            linkElement.appendChild(deleteIcon);
+            customLinksContainer.appendChild(linkElement);
+        });
+        setupLinkListeners();
+    }
+
+    // 加载自定义链接
+    function loadCustomLinks() {
+        const storedLinks = localStorage.getItem(`customLinks_${deviceFingerprint}`);
+        if (storedLinks) {
+            customLinks = JSON.parse(storedLinks);
+            renderCustomLinks();
+        }
+    }
+
+    // 初始化函数
+    async function init() {
+        await generateFingerprint();
+        loadShortcuts();
+        loadCustomLinks();
+        createKeyboard();
+        setupLinkListeners();
+        updateKeyboardShortcuts();
+        setupInputListeners();
+    }
+
+    // 设置拖动功能
+    const settingsPanel = document.getElementById('settingsPanel');
+    let isDragging = false;
+    let startX, startY, startLeft, startTop;
+
+    settingsPanel.addEventListener('mousedown', startDragging);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDragging);
+
+    function startDragging(e) {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = settingsPanel.offsetLeft;
+        startTop = settingsPanel.offsetTop;
+    }
+
+    function drag(e) {
+        if (!isDragging) return;
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+        settingsPanel.style.left = startLeft + deltaX + 'px';
+        settingsPanel.style.top = startTop + deltaY + 'px';
+    }
+
+    function stopDragging() {
+        isDragging = false;
+    }
+
+    // 设置输入框监听器
+    function setupInputListeners() {
+        const inputs = document.querySelectorAll('input[type="text"], input[type="url"]');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                isInputFocused = true;
+            });
+            input.addEventListener('blur', () => {
+                isInputFocused = false;
+            });
+        });
+    }
+
+    // 设置键盘快捷键
+    document.addEventListener('keydown', (e) => {
+        if (!isInputFocused) {
+            const key = e.key.toUpperCase();
+            if (shortcuts[key]) {
+                window.open(shortcuts[key], '_blank');
+            }
+        }
+    });
 
     // 初始化
-        init();
-    </script>
+    init();
+</script>
 
-    <!-- 添加冲突对话框 -->
-    <div id="conflictModal" class="modal">
-        <div id="conflictModalContent" class="modal-content">
-            <!-- 内容将通过 JavaScript 动态填充 -->
-        </div>
+<!-- 添加冲突对话框 -->
+<div id="conflictModal" class="modal">
+    <div id="conflictModalContent" class="modal-content">
+        <!-- 内容将通过 JavaScript 动态填充 -->
     </div>
+</div>
 </body>
 </html>
