@@ -48,6 +48,24 @@
             position: relative;
             display: inline-block;
             margin: 5px;
+            position: relative;
+            padding-left: 25px; /* 为快捷键留出空间 */
+        }
+        .link::before {
+            content: attr(data-shortcut);
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background-color: #007bff;
+            color: white;
+            font-size: 12px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            opacity: 0.8;
+            display: none; /* 默认不显示 */
+        }
+        .link[data-shortcut]::before {
+            display: block; /* 只有有快捷键的才显示 */
         }
         .link:hover {
             background-color: #f0f0f0;
@@ -605,8 +623,13 @@
         const links = document.querySelectorAll('.link');
         links.forEach(link => {
             const shortcut = Object.keys(shortcuts).find(key => shortcuts[key] === link.href);
-            link.textContent = `${link.textContent.split(' [')[0]} ${shortcut ? `[${shortcut}]` : ''}`;
-            link.dataset.shortcut = shortcut || '';
+            if (shortcut) {
+                link.dataset.shortcut = shortcut;
+            } else {
+                link.dataset.shortcut = '';
+            }
+        // 移除链接文本中的快捷键显示
+            link.textContent = link.textContent.split(' [')[0];
         });
         updateKeyboardShortcuts();
     }
@@ -664,9 +687,12 @@
                     } else {
                         setShortcut(newKey, link.href);
                     }
-                }
-            };
-        });
+                } else {
+                e.preventDefault(); // 阻止默认行为
+                window.open(link.href, '_blank'); // 在新标签页打开链接
+            }
+        };
+    });
     }
 
     // 显示冲突对话框
@@ -712,25 +738,49 @@
     // 更新键盘快捷键显示
     function updateKeyboardShortcuts() {
         const keyElements = document.querySelectorAll('.key');
+
         keyElements.forEach(keyElement => {
             const key = keyElement.textContent.trim().toUpperCase();
             const shortcutSpan = keyElement.querySelector('.shortcut');
             const tooltipSpan = keyElement.querySelector('.tooltip');
+
+        // 打印当前元素信息
+            console.log(`Processing key: ${key}`);
+            console.log(`shortcutSpan: `, shortcutSpan);
+            console.log(`tooltipSpan: `, tooltipSpan);
+
             if (shortcuts[key]) {
                 const link = document.querySelector(`a[href="${shortcuts[key]}"]`);
+                
                 if (link) {
-                    const websiteName = link.textContent.split(' [')[0];
+                    let websiteName = link.textContent || 'Unnamed';
+                    
+                // 打印当前快捷键和链接
+                    console.log(`Shortcut found for key: ${key}, Link: ${shortcuts[key]}`);
+
+                // 更新 shortcutSpan 显示简短版网站名称
                     shortcutSpan.textContent = websiteName.length > 8 ? websiteName.slice(0, 8) + '...' : websiteName;
-                    tooltipSpan.textContent = `${websiteName}\n${shortcuts[key]}`;
-                    keyElement.classList.add('has-shortcut');
-                }
-            } else {
-                shortcutSpan.textContent = '';
-                tooltipSpan.textContent = '';
-                keyElement.classList.remove('has-shortcut');
+
+                // 清除 tooltipSpan 的内容
+                tooltipSpan.textContent = ''; // 不显示任何提示信息
+
+                // 打印确认 tooltip 被清空
+                console.log(`Cleared tooltip for key: ${key}`);
+
+                keyElement.classList.add('has-shortcut');
             }
-        });
+        } else {
+            shortcutSpan.textContent = '';
+            tooltipSpan.textContent = '';  // 清空 tooltip
+            keyElement.classList.remove('has-shortcut');
+            
+            // 打印清空信息
+            console.log(`Cleared shortcut and tooltip for key: ${key}`);
+        }
+    });
     }
+
+
 
     // 开始预览
     function startPreview(event, key) {
